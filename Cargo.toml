@@ -1,5 +1,6 @@
 [package]
 name = "phigbot"
+homepage = "https://github.com/poly000/phigbot"
 description = "telegram bot for Phigros"
 authors = ["poly000"]
 license = "GPL-3.0"
