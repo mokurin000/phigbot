@@ -2,7 +2,7 @@
 name = "phigbot"
 description = "telegram bot for Phigros"
 authors = ["poly000"]
-license = "GPLv3"
+license = "GPL-3.0"
 version = "0.1.0"
 edition = "2021"
 
