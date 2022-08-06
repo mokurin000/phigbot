@@ -15,14 +15,37 @@ async fn main() {
     let bot = Bot::from_env().auto_send();
     let handler = Update::filter_inline_query().branch(dptree::endpoint(
         |query: InlineQuery, bot: AutoSend<Bot>| async move {
-            let text = constants::TIPS[rand_index(0..constants::TIPS.len()).await];
-            let content_text = InputMessageContentText::new(text);
-            let content = InputMessageContent::Text(content_text);
-            let result = vec![InlineQueryResult::Article(InlineQueryResultArticle::new(
-                "0", text, content,
-            ))];
-            
-            let response = bot.answer_inline_query(&query.id, result).cache_time(0).send().await;
+            let mut results = vec![];
+
+            if query.query.is_empty() {
+                let text = constants::TIPS[rand_index(0..constants::TIPS.len()).await];
+                let content_text = InputMessageContentText::new(text);
+                let content = InputMessageContent::Text(content_text);
+                let random_result =
+                    InlineQueryResult::Article(InlineQueryResultArticle::new("0", text, content));
+
+                results.push(random_result);
+            } else {
+                for (&text, i) in constants::TIPS
+                    .iter()
+                    .filter(|s| s.contains(&query.query))
+                    .zip(0..)
+                {
+                    let content = InputMessageContent::Text(InputMessageContentText::new(text));
+                    let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
+                        i.to_string(),
+                        text,
+                        content,
+                    ));
+                    results.push(result);
+                }
+            }
+
+            let response = bot
+                .answer_inline_query(&query.id, results)
+                .cache_time(0)
+                .send()
+                .await;
 
             if let Err(e) = response {
                 log::error!("Error in handler: {:?}", e);
