@@ -8,6 +8,7 @@ use teloxide::{
 use rand::{thread_rng, Rng};
 use std::ops::Range;
 mod constants;
+use constants::TIPS;
 
 #[tokio::main]
 async fn main() {
@@ -19,7 +20,7 @@ async fn main() {
 
             match &*query.query {
                 "" => {
-                    let text = constants::TIPS[rand_index(0..constants::TIPS.len()).await];
+                    let text = TIPS[rand_index(0..TIPS.len()).await];
                     let content_text = InputMessageContentText::new(text);
                     let content = InputMessageContent::Text(content_text);
                     let random_result = InlineQueryResult::Article(InlineQueryResultArticle::new(
@@ -29,22 +30,17 @@ async fn main() {
                     results.push(random_result);
                 }
                 "*" => {
-                    for (&text, i) in constants::TIPS.iter().zip(0..) {
-                        let content = InputMessageContent::Text(InputMessageContentText::new(text));
-                        let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
-                            i.to_string(),
-                            text,
-                            content,
-                        ));
-                        results.push(result);
-                    }
+                    let text = "https://github.com/poly000/phigbot/blob/main/src/constants/mod.rs";
+                    let content = InputMessageContent::Text(InputMessageContentText::new(text));
+                    let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
+                        "0",
+                        "全部tips见mod.rs",
+                        content,
+                    ));
+                    results.push(result);
                 }
                 _ => {
-                    for (&text, i) in constants::TIPS
-                        .iter()
-                        .filter(|s| s.contains(&query.query))
-                        .zip(0..)
-                    {
+                    for (&text, i) in TIPS.iter().filter(|s| s.contains(&query.query)).zip(0..) {
                         let content = InputMessageContent::Text(InputMessageContentText::new(text));
                         let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
                             i.to_string(),
