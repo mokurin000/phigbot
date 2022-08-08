@@ -63,4 +63,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ matrix.target }}.tar
-          tag_name: 0.1.0
+          tag_name: 0.2.0

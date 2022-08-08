@@ -4,7 +4,7 @@ homepage = "https://github.com/poly000/phigbot"
 description = "telegram bot for Phigros"
 authors = ["poly000"]
 license = "GPL-3.0"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
