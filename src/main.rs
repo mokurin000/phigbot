@@ -7,6 +7,7 @@ use teloxide::{
 
 use rand::{thread_rng, Rng};
 use std::ops::Range;
+
 mod constants;
 use constants::TIPS;
 
@@ -22,8 +23,8 @@ async fn main() {
     let bot = Bot::from_env().auto_send();
     let handler = Update::filter_inline_query().branch(dptree::endpoint(
         |query: InlineQuery, bot: AutoSend<Bot>| async move {
-            let mut results = vec![];
-            let case = get_results(&mut results, &query);
+            let (results, case) = get_results(&query.query);
+
             let cache_time = match case {
                 // should be the link to `mod.rs` forever
                 Case::List => u32::MAX,
@@ -55,8 +56,8 @@ fn rand_index(range: Range<usize>) -> usize {
     thread_rng().gen_range(range)
 }
 
-fn get_results(results: &mut Vec<InlineQueryResult>, query: &InlineQuery) -> Case {
-    match &*query.query {
+fn get_results(query: &str) -> (Vec<InlineQueryResult>, Case) {
+    match query {
         "" => {
             let text = TIPS[rand_index(0..TIPS.len())];
             let content_text = InputMessageContentText::new(text);
@@ -64,36 +65,38 @@ fn get_results(results: &mut Vec<InlineQueryResult>, query: &InlineQuery) -> Cas
             let random_result =
                 InlineQueryResult::Article(InlineQueryResultArticle::new("0", text, content));
 
-            results.push(random_result);
-            Case::Random
+            (vec![random_result], Case::Random)
         }
         "*" => {
             let text = "https://github.com/poly000/phigbot/blob/main/src/constants/mod.rs";
-            let content = InputMessageContent::Text(InputMessageContentText::new(text));
+            let content = InputMessageContent::Text(
+                InputMessageContentText::new(text).disable_web_page_preview(true),
+            );
             let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
                 "0",
                 "全部tips见mod.rs",
                 content,
             ));
-            results.push(result);
-            Case::List
+            (vec![result], Case::List)
         }
         _ => {
-            let downcase_key = query.query.to_lowercase();
-            for (&text, i) in TIPS
+            let downcase_key = query.to_lowercase();
+            let results = TIPS
                 .iter()
-                .filter(|s| s.to_lowercase().contains(&downcase_key))
-                .zip(0..)
-            {
-                let content = InputMessageContent::Text(InputMessageContentText::new(text));
-                let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
-                    i.to_string(),
-                    text,
-                    content,
-                ));
-                results.push(result);
-            }
-            Case::Search
+                .filter_map(|&text| {
+                    if text.to_lowercase().contains(&downcase_key) {
+                        let content = InputMessageContent::Text(InputMessageContentText::new(text));
+                        let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
+                            // will get duplicated id error if elements of TIPS aren't unique
+                            text, text, content,
+                        ));
+                        Some(result)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            (results, Case::Search)
         }
     }
 }
