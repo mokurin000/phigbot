@@ -68,7 +68,6 @@ async fn main() {
 
     Dispatcher::builder(bot, handler)
         .build()
-        .setup_ctrlc_handler()
         .dispatch()
         .await;
 }
