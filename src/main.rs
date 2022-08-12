@@ -83,17 +83,20 @@ fn get_results(query: &str) -> (Vec<InlineQueryResult>, Case) {
             let downcase_key = query.to_lowercase();
             let results = TIPS
                 .iter()
-                .filter_map(|&text| {
-                    if text.to_lowercase().contains(&downcase_key) {
-                        let content = InputMessageContent::Text(InputMessageContentText::new(text));
-                        let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
-                            // will get duplicated id error if elements of TIPS aren't unique
-                            text, text, content,
-                        ));
-                        Some(result)
-                    } else {
-                        None
+                .enumerate()
+                .filter_map(|(i, &text)| {
+                    if !text.to_lowercase().contains(&downcase_key) {
+                        return None;
                     }
+
+                    let content = InputMessageContent::Text(InputMessageContentText::new(text));
+                    let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
+                        // will get duplicated id error if elements of TIPS aren't unique
+                        i.to_string(),
+                        text,
+                        content,
+                    ));
+                    Some(result)
                 })
                 .collect();
             (results, Case::Search)
