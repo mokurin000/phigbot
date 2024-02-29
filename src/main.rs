@@ -1,3 +1,4 @@
+use sorensen::distance;
 use teloxide::{
     prelude::*,
     types::{
@@ -74,15 +75,22 @@ fn get_results(query: &str) -> (Vec<InlineQueryResult>, Case) {
             (vec![result], Case::List)
         }
         _ => {
-            let downcase_key = query.to_lowercase();
-            let results = TIPS
+            let mut results = TIPS
                 .into_iter()
-                .filter(|&t| t.contains(&downcase_key))
-                .take(MAX_INLINE_QUERY_RESULT_NUM)
-                .enumerate()
-                .filter_map(make_result)
-                .collect();
-            (results, Case::Search)
+                .map(|s| (s, distance(s.as_bytes(), query.as_bytes())))
+                .collect::<Vec<_>>();
+            results.sort_unstable_by_key(|(_, d)| (d * -1024.) as i32);
+            results.truncate(MAX_INLINE_QUERY_RESULT_NUM);
+
+            (
+                results
+                    .into_iter()
+                    .map(|(text, _)| text)
+                    .enumerate()
+                    .filter_map(make_result)
+                    .collect(),
+                Case::Search,
+            )
         }
     }
 }
