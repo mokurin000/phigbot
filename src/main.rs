@@ -5,11 +5,13 @@ use teloxide::{
     },
 };
 
-use rand::{thread_rng, Rng};
-use std::ops::Range;
+use rand::{rngs::ThreadRng, thread_rng, Rng};
+use std::{cell::RefCell, fmt::Display, iter::once, ops::Range};
 
 mod constants;
 use constants::TIPS;
+
+const MAX_INLINE_QUERY_RESULT_NUM: usize = 50;
 
 enum Case {
     Random,
@@ -20,9 +22,9 @@ enum Case {
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
-    let bot = Bot::from_env().auto_send();
+    let bot = Bot::from_env();
     let handler = Update::filter_inline_query().branch(dptree::endpoint(
-        |query: InlineQuery, bot: AutoSend<Bot>| async move {
+        |query: InlineQuery, bot: Bot| async move {
             let (results, case) = get_results(&query.query);
 
             let cache_time = match case {
@@ -52,19 +54,11 @@ async fn main() {
     Dispatcher::builder(bot, handler).build().dispatch().await;
 }
 
-fn rand_index(range: Range<usize>) -> usize {
-    thread_rng().gen_range(range)
-}
-
 fn get_results(query: &str) -> (Vec<InlineQueryResult>, Case) {
     match query {
         "" => {
             let text = TIPS[rand_index(0..TIPS.len())];
-            let content_text = InputMessageContentText::new(text);
-            let content = InputMessageContent::Text(content_text);
-            let random_result =
-                InlineQueryResult::Article(InlineQueryResultArticle::new("0", text, content));
-
+            let random_result = make_result((0, text)).unwrap();
             (vec![random_result], Case::Random)
         }
         "*" => {
@@ -82,24 +76,35 @@ fn get_results(query: &str) -> (Vec<InlineQueryResult>, Case) {
         _ => {
             let downcase_key = query.to_lowercase();
             let results = TIPS
-                .iter()
+                .into_iter()
+                .filter(|&t| t.contains(&downcase_key))
+                .take(MAX_INLINE_QUERY_RESULT_NUM)
                 .enumerate()
-                .filter_map(|(i, &text)| {
-                    if !text.to_lowercase().contains(&downcase_key) {
-                        return None;
-                    }
-
-                    let content = InputMessageContent::Text(InputMessageContentText::new(text));
-                    let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
-                        // will get duplicated id error if elements of TIPS aren't unique
-                        i.to_string(),
-                        text,
-                        content,
-                    ));
-                    Some(result)
-                })
+                .filter_map(make_result)
                 .collect();
             (results, Case::Search)
         }
     }
+}
+
+fn make_result((id, title): (impl Display, impl AsRef<str>)) -> Option<InlineQueryResult> {
+    let title = title.as_ref();
+    let id = id.to_string();
+
+    once(title)
+        .map(InputMessageContentText::new)
+        .map(InputMessageContent::Text)
+        .map(|input_message_content| {
+            InlineQueryResultArticle::new(&id, title, input_message_content)
+        })
+        .map(InlineQueryResult::Article)
+        .next()
+}
+
+fn rand_index(range: Range<usize>) -> usize {
+    RNG.with_borrow_mut(|rng| rng.gen_range(range))
+}
+
+thread_local! {
+    static RNG: RefCell<ThreadRng> = RefCell::new(thread_rng());
 }
