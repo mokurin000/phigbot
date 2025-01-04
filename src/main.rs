@@ -3,6 +3,7 @@ use teloxide::{
     prelude::*,
     types::{
         InlineQueryResult, InlineQueryResultArticle, InputMessageContent, InputMessageContentText,
+        LinkPreviewOptions,
     },
 };
 
@@ -65,7 +66,13 @@ fn get_results(query: &str) -> (Vec<InlineQueryResult>, Case) {
         "*" => {
             let text = "https://github.com/poly000/phigbot/blob/main/src/constants/mod.rs";
             let content = InputMessageContent::Text(
-                InputMessageContentText::new(text).disable_web_page_preview(true),
+                InputMessageContentText::new(text).link_preview_options(LinkPreviewOptions {
+                    is_disabled: true,
+                    url: None,
+                    prefer_large_media: false,
+                    prefer_small_media: false,
+                    show_above_text: false,
+                }),
             );
             let result = InlineQueryResult::Article(InlineQueryResultArticle::new(
                 "0",
